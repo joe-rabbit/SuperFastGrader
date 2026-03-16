@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSE 412 Gradebook</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet">
+<style>
+:root { --maroon:#8B0000; --gold:#FFC627; }
+*, *::before, *::after { box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:#f0f2f5; }
+
+/* ── Header ── */
+.app-header {
+  height:52px; background:var(--maroon); color:white;
+  display:flex; align-items:center; gap:12px; padding:0 20px; flex-shrink:0;
+}
+.app-header h1 { font-size:1.1rem; font-weight:800; margin:0; letter-spacing:.4px; }
+.app-header .sub { font-size:.78rem; color:rgba(255,255,255,.5); }
+.app-header .cnt { color:var(--gold); font-weight:700; font-size:.82rem; margin-left:auto; }
+
+/* ── Body ── */
+.app-body { display:flex; height:calc(100vh - 52px); overflow:hidden; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width:258px; min-width:258px; background:#f8f8f8;
+  border-right:1px solid #ddd; display:flex; flex-direction:column; overflow:hidden;
+}
+.sidebar-hdr { padding:10px 10px 6px; flex-shrink:0; }
+.sidebar-hdr h2 { font-size:.88rem; font-weight:800; color:var(--maroon); margin:0 0 7px; }
+.sidebar-search {
+  width:100%; padding:6px 10px; border:1px solid #ddd; border-radius:6px;
+  font-size:.84rem; outline:none; background:white;
+}
+.sidebar-search:focus { border-color:var(--maroon); }
+.group-list { overflow-y:auto; flex:1; padding:5px; }
+.g-item {
+  padding:8px 11px; border-radius:7px; cursor:pointer; margin-bottom:3px;
+  transition:background .12s;
+}
+.g-item:hover { background:#efefef; }
+.g-item.active { background:var(--maroon) !important; }
+.g-item .gn { font-size:.63rem; font-weight:700; color:#999; }
+.g-item .gp { font-size:.82rem; font-weight:700; color:#222; }
+.g-item .gm { font-size:.67rem; color:#aaa; }
+.g-item.active .gn { color:rgba(255,255,255,.65); }
+.g-item.active .gp { color:#fff; }
+.g-item.active .gm { color:rgba(255,255,255,.5); }
+.g-dot { color:var(--gold); }
+.g-item.active .g-dot { color:#ffe06e; }
+
+/* ── Main ── */
+.main-area { flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+
+.no-sel {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; color:#ccc; gap:10px;
+}
+.no-sel .material-icons { font-size:4rem; }
+
+/* ── Group Header ── */
+.g-header {
+  background:linear-gradient(135deg,var(--maroon),#a52020);
+  color:white; padding:12px 20px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.g-header .gnum { font-size:.7rem; font-weight:600; color:rgba(255,255,255,.6); }
+.g-header .gname { font-size:1.1rem; font-weight:800; }
+.g-badge {
+  background:rgba(255,255,255,.2); color:white;
+  font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:20px;
+}
+
+/* ── Tab Bar ── */
+.tab-bar {
+  background:white; border-bottom:2px solid #eee;
+  display:flex; gap:2px; padding:0 6px; flex-shrink:0;
+}
+.t-btn {
+  padding:9px 13px; border:none; background:none;
+  font-size:.8rem; font-weight:600; color:#999; cursor:pointer;
+  border-bottom:3px solid transparent; margin-bottom:-2px;
+  display:flex; align-items:center; gap:4px; transition:color .12s;
+  white-space:nowrap;
+}
+.t-btn .material-icons { font-size:.95rem; }
+.t-btn:hover { color:var(--maroon); }
+.t-btn.active { color:var(--maroon); border-bottom-color:var(--maroon); }
+
+/* ── Tab Panels ── */
+.tab-panels { flex:1; overflow:hidden; background:white; position:relative; }
+.t-panel {
+  display:none; position:absolute; inset:0;
+  overflow:auto; padding:18px; flex-direction:column;
+}
+.t-panel.active { display:flex; }
+.t-panel.no-pad { padding:0; }
+
+/* ── Buttons ── */
+.btn-m {
+  background:var(--maroon); color:white; border:none;
+  padding:6px 14px; border-radius:6px; font-size:.82rem; font-weight:600;
+  cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+}
+.btn-m:hover { background:#a52020; }
+.btn-o {
+  background:white; color:var(--maroon); border:1px solid var(--maroon);
+  padding:6px 14px; border-radius:6px; font-size:.82rem; font-weight:600;
+  cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+}
+.btn-o:hover { background:#fdf3f3; }
+.btn-g {
+  background:none; color:#555; border:1px solid #ddd;
+  padding:6px 12px; border-radius:6px; font-size:.82rem;
+  cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+}
+.btn-g:hover { background:#f5f5f5; }
+.btn-sm { padding:4px 10px; font-size:.76rem; }
+.mat-sm { font-size:.9rem !important; }
+
+/* ── Form ── */
+.f-input {
+  width:100%; padding:8px 10px; border:1px solid #ddd;
+  border-radius:6px; font-size:.85rem; outline:none;
+}
+.f-input:focus { border-color:var(--maroon); }
+.lbl { font-size:.68rem; font-weight:700; color:#888; letter-spacing:1px;
+       text-transform:uppercase; margin-bottom:4px; }
+.sep { border:none; border-top:1px solid #eee; margin:10px 0; }
+
+/* ── Info Tab ── */
+.i-cards { display:flex; gap:16px; }
+.i-card { flex:1; border:1px solid #eee; border-radius:10px; padding:16px; }
+.i-card h3 { font-size:.7rem; font-weight:700; color:var(--maroon); letter-spacing:1px; margin-bottom:8px; }
+.mem-row { display:flex; align-items:center; gap:8px; padding:3px 0; }
+.mem-av {
+  width:26px; height:26px; border-radius:50%; background:var(--maroon); color:white;
+  font-size:.65rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.i-row { display:flex; gap:8px; padding:3px 0; align-items:center; }
+.i-lbl { color:#888; min-width:72px; font-size:.78rem; }
+.i-val { font-size:.88rem; font-weight:600; }
+
+/* ── Links Tab ── */
+.lk-card { border:1px solid #eee; border-radius:10px; padding:16px; margin-bottom:12px; }
+.lk-card h3 { font-size:.88rem; font-weight:700; margin-bottom:10px;
+               display:flex; align-items:center; gap:6px; }
+.lk-card h3 .material-icons { color:var(--maroon); font-size:1.2rem; }
+
+/* ── PDF Tab ── */
+.pdf-wrap { display:flex; height:100%; }
+.pdf-side { width:220px; min-width:220px; padding:14px; border-right:1px solid #eee;
+             display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+.pdf-view { flex:1; background:#525659; overflow:hidden; display:flex; }
+.pdf-view embed { width:100%; height:100%; border:none; display:block; }
+.pdf-view iframe { width:100%; height:100%; border:none; display:block; }
+
+/* ── Code Tab ── */
+.code-wrap { display:flex; height:100%; }
+.code-tree { width:240px; min-width:240px; border-right:1px solid #eee;
+              overflow-y:auto; flex-shrink:0; }
+.ct-hdr { padding:8px 12px; font-size:.7rem; font-weight:700;
+           color:var(--maroon); border-bottom:1px solid #eee; background:#fdf3f3;
+           position:sticky; top:0; }
+.ct-folder { padding:5px 12px; font-size:.77rem; color:#555; font-weight:700;
+              background:#f8f8f8; display:flex; align-items:center; gap:5px; }
+.ct-file { padding:4px 12px; font-size:.77rem; cursor:pointer;
+            display:flex; align-items:center; gap:5px; color:#333; }
+.ct-file:hover { background:#f0f0f0; }
+.ct-file.active { background:#fdf3f3; color:var(--maroon); font-weight:600; }
+.code-viewer { flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden; }
+.cv-path { padding:6px 12px; font-size:.7rem; color:var(--maroon); font-weight:700;
+            background:#fdf3f3; border-bottom:1px solid #eee; flex-shrink:0; }
+.cv-scroll { flex:1; overflow:auto; }
+.cv-scroll pre { margin:0; }
+.cv-scroll code { font-size:.78rem !important; }
+
+/* ── Notes Tab ── */
+.notes-wrap { display:flex; height:100%; }
+.notes-media { flex:1; border-right:1px solid #eee; display:flex; flex-direction:column; min-width:0; }
+.nm-hdr { padding:6px 12px; background:#fdf3f3; border-bottom:1px solid #eee;
+           display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.nm-hdr .lbl { margin:0; }
+.nm-frame { flex:1; overflow:hidden; position:relative; }
+.nm-frame iframe, .nm-frame video { width:100%; height:100%; border:none; display:block; }
+.notes-right { width:42%; min-width:300px; padding:14px 18px;
+                display:flex; flex-direction:column; overflow:hidden; }
+.phase-tabs { display:flex; gap:4px; margin-bottom:10px; flex-shrink:0; }
+.ph-tab {
+  padding:5px 14px; border:1px solid #ddd; border-radius:6px; background:white;
+  font-size:.8rem; font-weight:600; cursor:pointer; color:#666;
+}
+.ph-tab.active { background:var(--maroon); color:white; border-color:var(--maroon); }
+.ph-panel { display:none; flex-direction:column; flex:1; overflow:hidden; }
+.ph-panel.active { display:flex; }
+.notes-ta {
+  flex:1; border:1px solid #ddd; border-radius:8px; padding:10px;
+  font-size:.88rem; resize:none; outline:none; font-family:inherit; min-height:0;
+}
+.notes-ta:focus { border-color:var(--maroon); }
+.notes-meta { font-size:.7rem; color:#aaa; margin-top:4px; flex-shrink:0; }
+
+/* ── Search Tab ── */
+.s-input {
+  width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px;
+  font-size:.95rem; outline:none; margin-bottom:8px; flex-shrink:0;
+}
+.s-input:focus { border-color:var(--maroon); }
+.s-results { overflow-y:auto; flex:1; }
+.s-card { border:1px solid #eee; border-radius:8px; padding:10px 14px; margin-bottom:6px; }
+.s-card:hover { border-color:#ccc; background:#fafafa; }
+
+/* ── Graph Tab ── */
+#graph-img { max-width:100%; border-radius:8px; border:1px solid #eee; }
+
+/* ── Placeholder ── */
+.placeholder {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; color:#ccc; gap:10px; background:#f8f8f8; flex:1;
+}
+.placeholder .material-icons { font-size:3rem; }
+.placeholder span { font-size:.85rem; color:#aaa; }
+
+/* ── File upload button ── */
+.upload-btn { position:relative; overflow:hidden; }
+.upload-btn input[type=file] {
+  position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;
+}
+
+/* ── Toast ── */
+.toast-msg {
+  position:fixed; top:16px; right:16px; padding:10px 18px;
+  border-radius:8px; font-size:.85rem; font-weight:600; z-index:9999;
+  opacity:0; transition:opacity .25s; pointer-events:none; color:white;
+  background:#27ae60;
+}
+.toast-msg.show { opacity:1; }
+.toast-msg.err { background:#e74c3c; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="app-header">
+  <span class="material-icons">school</span>
+  <h1>CSE 412 Gradebook</h1>
+  <span class="sub">Student Group Project Viewer</span>
+  <span class="cnt">{{ group_count }} groups</span>
+</div>
+
+<!-- ── Body ── -->
+<div class="app-body">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-hdr">
+      <h2>Groups</h2>
+      <input class="sidebar-search" id="sidebar-search" type="text"
+             placeholder="Search groups…" oninput="filterSidebar(this.value)">
+    </div>
+    <div class="group-list" id="group-list"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-area">
+
+    <!-- No group selected -->
+    <div class="no-sel" id="no-sel">
+      <span class="material-icons">folder_open</span>
+      <span style="color:#bbb;font-size:1rem;">Select a group from the sidebar</span>
+    </div>
+
+    <!-- Group view -->
+    <div id="g-view" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+
+      <!-- Group header -->
+      <div class="g-header">
+        <div>
+          <div class="gnum" id="h-gnum"></div>
+          <div class="gname" id="h-gname"></div>
+        </div>
+        <span class="g-badge" id="h-mbadge"></span>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="t-btn active" data-tab="info"   onclick="switchTab('info')">  <span class="material-icons">group</span>Info</button>
+        <button class="t-btn"        data-tab="links"  onclick="switchTab('links')"> <span class="material-icons">link</span>Links</button>
+        <button class="t-btn"        data-tab="pdf"    onclick="switchTab('pdf')">   <span class="material-icons">picture_as_pdf</span>PDF</button>
+        <button class="t-btn"        data-tab="code"   onclick="switchTab('code')">  <span class="material-icons">code</span>Code</button>
+        <button class="t-btn"        data-tab="notes"  onclick="switchTab('notes')"> <span class="material-icons">edit_note</span>Notes</button>
+        <button class="t-btn"        data-tab="search" onclick="switchTab('search')"><span class="material-icons">search</span>Search</button>
+        <button class="t-btn"        data-tab="graph"  onclick="switchTab('graph')"> <span class="material-icons">hub</span>Graph</button>
+      </div>
+
+      <!-- Panels -->
+      <div class="tab-panels">
+
+        <!-- INFO -->
+        <div class="t-panel active" id="panel-info">
+          <div class="i-cards">
+            <div class="i-card">
+              <h3>MEMBERS</h3><hr class="sep">
+              <div id="info-members"></div>
+            </div>
+            <div class="i-card">
+              <h3>PROJECT DETAILS</h3><hr class="sep">
+              <div id="info-details"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LINKS -->
+        <div class="t-panel" id="panel-links">
+          <div id="links-body"></div>
+        </div>
+
+        <!-- PDF -->
+        <div class="t-panel no-pad" id="panel-pdf">
+          <div class="pdf-wrap">
+            <div class="pdf-side">
+              <div class="lbl">PDF Report</div>
+              <label class="btn-m upload-btn" style="justify-content:center;cursor:pointer;">
+                <span class="material-icons mat-sm">folder_open</span> Pick PDF
+                <input type="file" accept=".pdf" onchange="uploadFile(this,'pdf')">
+              </label>
+              <hr class="sep" style="margin:4px 0;">
+              <div class="lbl">Or open a web URL</div>
+              <input class="f-input" id="pdf-url" type="text" placeholder="https://drive.google.com/…">
+              <div style="display:flex;gap:6px;">
+                <button class="btn-m btn-sm" style="flex:1;justify-content:center;" onclick="savePdfUrl()">
+                  <span class="material-icons mat-sm">save</span>Save
+                </button>
+                <button class="btn-o btn-sm" onclick="openPdfUrl()">
+                  <span class="material-icons mat-sm">open_in_new</span>
+                </button>
+              </div>
+              <hr class="sep" style="margin:4px 0;">
+              <div style="font-size:.78rem;color:#555;" id="pdf-label">No PDF loaded</div>
+              <button class="btn-g btn-sm" id="pdf-ext-btn" style="display:none;" onclick="openPdfExt()">
+                <span class="material-icons mat-sm">launch</span>Open externally
+              </button>
+            </div>
+            <div class="pdf-view" id="pdf-view">
+              <div class="placeholder">
+                <span class="material-icons">picture_as_pdf</span>
+                <span>No PDF loaded — pick one</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CODE -->
+        <div class="t-panel no-pad" id="panel-code" style="flex-direction:column;">
+          <div style="padding:10px 14px;border-bottom:1px solid #eee;display:flex;
+                      align-items:center;gap:10px;flex-shrink:0;background:white;">
+            <label class="btn-m upload-btn btn-sm" style="cursor:pointer;">
+              <span class="material-icons mat-sm">folder_zip</span>Pick ZIP
+              <input type="file" accept=".zip" onchange="uploadFile(this,'zip')">
+            </label>
+            <span id="zip-info" style="font-size:.8rem;color:#27ae60;font-weight:600;"></span>
+          </div>
+          <div class="code-wrap" id="code-body" style="flex:1;overflow:hidden;">
+            <div class="placeholder"><span class="material-icons">folder_zip</span><span>Pick a ZIP to browse</span></div>
+          </div>
+        </div>
+
+        <!-- NOTES -->
+        <div class="t-panel no-pad" id="panel-notes">
+          <div class="notes-wrap">
+            <div class="notes-media">
+              <div class="nm-hdr">
+                <span class="lbl">EMBEDDED VIEWER</span>
+                <div id="media-btns" style="display:flex;gap:6px;"></div>
+              </div>
+              <div class="nm-frame" id="media-frame">
+                <div class="placeholder">
+                  <span class="material-icons">play_circle</span>
+                  <span>No video URL set — add one in Links</span>
+                </div>
+              </div>
+            </div>
+            <div class="notes-right">
+              <div class="lbl" style="margin-bottom:8px;">GRADING NOTES</div>
+              <div class="phase-tabs">
+                <button class="ph-tab active" onclick="switchPhase('phase1')">Phase 1</button>
+                <button class="ph-tab"        onclick="switchPhase('phase2')">Phase 2</button>
+                <button class="ph-tab"        onclick="switchPhase('phase3')">Phase 3</button>
+              </div>
+              <div class="ph-panel active" id="pp-phase1">
+                <textarea class="notes-ta" id="nt-phase1" placeholder="Phase 1 feedback…"></textarea>
+                <div class="notes-meta" id="nm-phase1">Not saved yet</div>
+                <button class="btn-m btn-sm" style="margin-top:8px;width:fit-content;" onclick="saveNotes('phase1')">
+                  <span class="material-icons mat-sm">save</span>Save
+                </button>
+              </div>
+              <div class="ph-panel" id="pp-phase2">
+                <textarea class="notes-ta" id="nt-phase2" placeholder="Phase 2 feedback…"></textarea>
+                <div class="notes-meta" id="nm-phase2">Not saved yet</div>
+                <button class="btn-m btn-sm" style="margin-top:8px;width:fit-content;" onclick="saveNotes('phase2')">
+                  <span class="material-icons mat-sm">save</span>Save
+                </button>
+              </div>
+              <div class="ph-panel" id="pp-phase3">
+                <textarea class="notes-ta" id="nt-phase3" placeholder="Phase 3 feedback…"></textarea>
+                <div class="notes-meta" id="nm-phase3">Not saved yet</div>
+                <button class="btn-m btn-sm" style="margin-top:8px;width:fit-content;" onclick="saveNotes('phase3')">
+                  <span class="material-icons mat-sm">save</span>Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="t-panel" id="panel-search">
+          <input class="s-input" id="s-input" type="text"
+                 placeholder="Search by group, project name, or member…"
+                 oninput="doSearch(this.value)">
+          <div style="font-size:.78rem;color:#888;margin-bottom:8px;flex-shrink:0;" id="s-count"></div>
+          <div class="s-results" id="s-results"></div>
+        </div>
+
+        <!-- GRAPH -->
+        <div class="t-panel" id="panel-graph">
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-shrink:0;">
+            <button class="btn-m btn-sm" id="btn-g-group" onclick="loadGraph(false)">
+              <span class="material-icons mat-sm">hub</span><span id="g-btn-label">This Group</span>
+            </button>
+            <button class="btn-o btn-sm" onclick="loadGraph(true)">
+              <span class="material-icons mat-sm">account_tree</span>All Groups
+            </button>
+          </div>
+          <div id="graph-wrap">
+            <div class="placeholder" style="height:380px;">
+              <span class="material-icons">hub</span><span>Loading…</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /tab-panels -->
+    </div><!-- /g-view -->
+  </div><!-- /main-area -->
+</div><!-- /app-body -->
+
+<div class="toast-msg" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════
+   State
+══════════════════════════════════════════════════════ */
+let allGroups = [];
+let curGroup  = null;
+let curTab    = 'info';
+let curPhase  = 'phase1';
+
+/* ═══════════════════════════════════════════════════
+   Init
+══════════════════════════════════════════════════════ */
+async function init() {
+  const r = await fetch('/api/groups');
+  allGroups = await r.json();
+  renderSidebar(allGroups);
+  renderSearchResults(allGroups);
+  document.getElementById('s-count').textContent = `${allGroups.length} groups`;
+}
+
+/* ═══════════════════════════════════════════════════
+   Toast
+══════════════════════════════════════════════════════ */
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast-msg show' + (err ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = 'toast-msg', 2800);
+}
+
+/* ═══════════════════════════════════════════════════
+   Sidebar
+══════════════════════════════════════════════════════ */
+function renderSidebar(groups) {
+  document.getElementById('group-list').innerHTML = groups.map(g => {
+    const hasNotes = ['phase1','phase2','phase3'].some(p => g.notes?.[p]?.text);
+    const sel = curGroup?.group === g.group;
+    return `<div class="g-item${sel?' active':''}" onclick="selectGroup('${g.group}')">
+      <div class="gn">Group ${g.group}</div>
+      <div class="gp">${hasNotes?'<span class="g-dot">● </span>':''}${esc(g.project)}</div>
+      <div class="gm">${g.members.length} members</div>
+    </div>`;
+  }).join('');
+}
+
+function filterSidebar(q) {
+  const lq = q.toLowerCase();
+  renderSidebar(q ? allGroups.filter(g =>
+    g.project.toLowerCase().includes(lq) ||
+    g.group.includes(lq) ||
+    g.members.some(m => m.toLowerCase().includes(lq))
+  ) : allGroups);
+}
+
+/* ═══════════════════════════════════════════════════
+   Select Group
+══════════════════════════════════════════════════════ */
+async function selectGroup(gid) {
+  const r = await fetch(`/api/group/${gid}`);
+  curGroup = await r.json();
+
+  renderSidebar(allGroups);
+
+  document.getElementById('no-sel').style.display = 'none';
+  const gv = document.getElementById('g-view');
+  gv.style.display = 'flex';
+
+  document.getElementById('h-gnum').textContent  = `Group ${gid}`;
+  document.getElementById('h-gname').textContent = curGroup.project;
+  document.getElementById('h-mbadge').textContent = `${curGroup.members.length} members`;
+
+  renderInfo();
+  renderLinks();
+  renderPdf();
+  renderNotes();
+  renderMedia();
+  resetCode();
+
+  const target = curTab === 'search' ? 'info' : curTab;
+  switchTab(target, false);
+  if (target === 'graph') loadGraph(false);
+}
+
+/* ═══════════════════════════════════════════════════
+   Tab switching
+══════════════════════════════════════════════════════ */
+function switchTab(tab, doGraph=true) {
+  curTab = tab;
+  document.querySelectorAll('.t-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.t-panel').forEach(p => {
+    p.classList.remove('active');
+  });
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  if (tab === 'graph' && doGraph && curGroup) loadGraph(false);
+}
+
+/* ═══════════════════════════════════════════════════
+   INFO
+══════════════════════════════════════════════════════ */
+function renderInfo() {
+  const g = curGroup;
+  document.getElementById('info-members').innerHTML =
+    g.members.map((m,i) => `
+      <div class="mem-row">
+        <div class="mem-av">${i+1}</div>
+        <span style="font-size:.9rem;">${esc(m)}</span>
+      </div>`).join('');
+
+  const links = [
+    {k:'video_url', l:'Video',  ic:'play_circle'},
+    {k:'repo_url',  l:'Repo',   ic:'code'},
+    {k:'report_url',l:'Report', ic:'description'},
+  ];
+  let det = `
+    <div class="i-row"><span class="i-lbl">Group:</span><span class="i-val">Group ${g.group}</span></div>
+    <div class="i-row"><span class="i-lbl">Project:</span><span class="i-val">${esc(g.project)}</span></div>
+    <div class="i-row"><span class="i-lbl">Size:</span><span class="i-val">${g.members.length} students</span></div>
+    <hr class="sep"><div class="lbl">Submitted Links</div>`;
+
+  links.forEach(({k,l,ic}) => {
+    if (g[k]) det += `<div class="i-row" style="gap:6px;">
+      <span class="material-icons" style="font-size:1rem;color:var(--maroon);">${ic}</span>
+      <a href="${esc(g[k])}" target="_blank" style="font-size:.85rem;">${l}</a></div>`;
+  });
+
+  const saved = ['phase1','phase2','phase3'].filter(p => g.notes?.[p]?.text);
+  if (saved.length) {
+    det += `<hr class="sep"><div class="lbl">Notes</div>`;
+    saved.forEach(p => {
+      det += `<div class="i-row">
+        <span class="i-lbl">${p.replace('phase','Phase ')}:</span>
+        <span class="i-val">saved ${g.notes[p].updated}</span></div>`;
+    });
+  }
+  document.getElementById('info-details').innerHTML = det;
+}
+
+/* ═══════════════════════════════════════════════════
+   LINKS
+══════════════════════════════════════════════════════ */
+function renderLinks() {
+  const g = curGroup;
+  const defs = [
+    {f:'video_url',  l:'Demo Video',       ic:'play_circle',  ph:'https://youtu.be/…',           local:true},
+    {f:'repo_url',   l:'GitHub / Repo',    ic:'code',         ph:'https://github.com/student/…'},
+    {f:'report_url', l:'Report / Slides',  ic:'description',  ph:'https://drive.google.com/…'},
+  ];
+  document.getElementById('links-body').innerHTML = defs.map(({f,l,ic,ph,local}) => `
+    <div class="lk-card">
+      <h3><span class="material-icons">${ic}</span>${l}</h3>
+      <input class="f-input" id="inp-${f}" type="text" value="${esc(g[f]||'')}" placeholder="${ph}">
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-m btn-sm" onclick="saveField('${f}', document.getElementById('inp-${f}').value)">
+          <span class="material-icons mat-sm">save</span>Save
+        </button>
+        <button class="btn-o btn-sm" onclick="openUrl(document.getElementById('inp-${f}').value)">
+          <span class="material-icons mat-sm">open_in_new</span>Open in Browser
+        </button>
+        ${local ? `<label class="btn-g btn-sm upload-btn" style="cursor:pointer;">
+          <span class="material-icons mat-sm">folder_open</span>Local file
+          <input type="file" accept="video/*" onchange="uploadVideoFile(this,'${f}')">
+        </label>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   PDF
+══════════════════════════════════════════════════════ */
+function renderPdf() {
+  const g = curGroup;
+  document.getElementById('pdf-url').value = g.report_url || '';
+  if (g.pdfpath) {
+    document.getElementById('pdf-label').textContent = g.pdfpath;
+    document.getElementById('pdf-ext-btn').style.display = 'inline-flex';
+    showPdf(`/uploads/${g.group}/${g.pdfpath}`);
+  } else {
+    document.getElementById('pdf-label').textContent = 'No PDF loaded';
+    document.getElementById('pdf-ext-btn').style.display = 'none';
+    document.getElementById('pdf-view').innerHTML =
+      `<div class="placeholder"><span class="material-icons">picture_as_pdf</span><span>No PDF loaded</span></div>`;
+  }
+}
+
+function showPdf(path) {
+  const url = `http://localhost:5000${path}`;
+  document.getElementById('pdf-view').innerHTML =
+    `<embed src="${url}" type="application/pdf">`;
+}
+
+function savePdfUrl() {
+  const url = document.getElementById('pdf-url').value.trim();
+  if (!url) return;
+  saveField('report_url', url);
+}
+function openPdfUrl() {
+  const url = document.getElementById('pdf-url').value.trim();
+  if (url) window.open(url,'_blank');
+}
+function openPdfExt() {
+  if (curGroup?.pdfpath) window.open(`/uploads/${curGroup.group}/${curGroup.pdfpath}`,'_blank');
+}
+
+/* ═══════════════════════════════════════════════════
+   CODE
+══════════════════════════════════════════════════════ */
+function resetCode() {
+  document.getElementById('zip-info').textContent = '';
+  document.getElementById('code-body').innerHTML =
+    `<div class="placeholder"><span class="material-icons">folder_zip</span><span>Pick a ZIP to browse</span></div>`;
+  if (curGroup?.zippath) loadZipTree();
+}
+
+async function loadZipTree() {
+  const r = await fetch(`/api/group/${curGroup.group}/zip-tree`);
+  const {files} = await r.json();
+  if (!files.length) return;
+  document.getElementById('zip-info').textContent = `${files.length} files`;
+
+  // Build tree structure
+  const root = {};
+  files.forEach(f => {
+    const parts = f.split('/');
+    let node = root;
+    parts.slice(0,-1).forEach(p => { node = node[p] = node[p] || {}; });
+    node['__file__' + parts[parts.length-1]] = f;
+  });
+
+  function renderTree(obj, depth) {
+    return Object.entries(obj).map(([k,v]) => {
+      if (k.startsWith('__file__')) {
+        const fname = k.slice(8);
+        const id = 'f_' + btoa(v).replace(/[^a-zA-Z0-9]/g,'');
+        return `<div class="ct-file" id="${id}" onclick="loadFile('${v.replace(/'/g,"\\'")}','${id}')"
+                     style="padding-left:${12+depth*10}px;">📄 ${esc(fname)}</div>`;
+      }
+      return `<div class="ct-folder" style="padding-left:${12+depth*10}px;">📁 ${esc(k)}</div>
+              ${renderTree(v, depth+1)}`;
+    }).join('');
+  }
+
+  document.getElementById('code-body').innerHTML = `
+    <div class="code-tree">
+      <div class="ct-hdr">Files</div>
+      ${renderTree(root, 0)}
+    </div>
+    <div class="code-viewer" id="code-viewer">
+      <div class="placeholder"><span class="material-icons">code</span><span>← Select a file</span></div>
+    </div>`;
+}
+
+async function loadFile(path, fileId) {
+  document.querySelectorAll('.ct-file').forEach(el => el.classList.remove('active'));
+  document.getElementById(fileId)?.classList.add('active');
+
+  const r = await fetch(`/api/group/${curGroup.group}/zip-file?path=${encodeURIComponent(path)}`);
+  const d = await r.json();
+
+  const escaped = d.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('code-viewer').innerHTML = `
+    <div class="cv-path">📄 ${esc(d.path)} &nbsp;·&nbsp; ${d.lines} lines &nbsp;·&nbsp; ${d.lang}</div>
+    <div class="cv-scroll"><pre><code class="language-${d.lang}">${escaped}</code></pre></div>`;
+  const codeEl = document.querySelector('#code-viewer code');
+  if (codeEl) hljs.highlightElement(codeEl);
+}
+
+/* ═══════════════════════════════════════════════════
+   NOTES
+══════════════════════════════════════════════════════ */
+function renderNotes() {
+  const g = curGroup;
+  ['phase1','phase2','phase3'].forEach((p,i) => {
+    const pd = g.notes?.[p] || {};
+    document.getElementById(`nt-${p}`).value = pd.text || '';
+    document.getElementById(`nm-${p}`).textContent =
+      pd.updated ? `Last saved: ${pd.updated}` : 'Not saved yet';
+    const btn = document.querySelectorAll('.ph-tab')[i];
+    btn.textContent = `Phase ${i+1}${pd.text ? ' ✓' : ''}`;
+  });
+}
+
+function renderMedia() {
+  const g = curGroup;
+  const vid = g.video_url || '', rep = g.report_url || '', repo = g.repo_url || '';
+  let btns = '';
+  if (vid)  btns += `<button class="btn-m btn-sm" onclick="embedSrc('${safeAttr(vid)}')">▶ Video</button>`;
+  if (rep)  btns += `<button class="btn-o btn-sm" onclick="embedSrc('${safeAttr(rep)}')">📄 Report</button>`;
+  if (repo) btns += `<button class="btn-g btn-sm" onclick="openUrl('${safeAttr(repo)}')">⌨ Repo ↗</button>`;
+  document.getElementById('media-btns').innerHTML = btns;
+
+  const def = vid || rep;
+  if (def) embedSrc(def);
+  else document.getElementById('media-frame').innerHTML =
+    `<div class="placeholder"><span class="material-icons">play_circle</span><span>No video URL set</span></div>`;
+}
+
+function embedSrc(url) {
+  const frame = document.getElementById('media-frame');
+  if (!url) return;
+
+  if (url.startsWith('/uploads/')) {
+    frame.innerHTML = `<video src="http://localhost:5000${url}" controls style="width:100%;height:100%;background:#000;outline:none;"></video>`;
+    return;
+  }
+  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([A-Za-z0-9_-]{11})/);
+  if (yt) {
+    frame.innerHTML = `<iframe src="https://www.youtube.com/embed/${yt[1]}" allow="autoplay;fullscreen" allowfullscreen></iframe>`;
+    return;
+  }
+  frame.innerHTML = `<iframe src="${esc(url)}" allow="autoplay;fullscreen" allowfullscreen></iframe>`;
+}
+
+function switchPhase(p) {
+  curPhase = p;
+  document.querySelectorAll('.ph-tab').forEach((b,i) => b.classList.toggle('active', `phase${i+1}` === p));
+  document.querySelectorAll('.ph-panel').forEach(el => el.classList.remove('active'));
+  document.getElementById(`pp-${p}`).classList.add('active');
+}
+
+async function saveNotes(phase) {
+  const text = document.getElementById(`nt-${phase}`).value;
+  await fetch(`/api/group/${curGroup.group}/notes`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({phase, text})
+  });
+  const now = new Date().toLocaleString('sv').slice(0,16).replace('T',' ');
+  document.getElementById(`nm-${phase}`).textContent = `Last saved: ${now}`;
+  if (!curGroup.notes) curGroup.notes = {};
+  if (!curGroup.notes[phase]) curGroup.notes[phase] = {};
+  curGroup.notes[phase].text    = text;
+  curGroup.notes[phase].updated = now;
+  const idx = allGroups.findIndex(g => g.group === curGroup.group);
+  if (idx>=0) allGroups[idx] = curGroup;
+  renderNotes();
+  renderInfo();
+  renderSidebar(allGroups);
+  toast('Notes saved!');
+}
+
+/* ═══════════════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════════════════ */
+async function doSearch(q) {
+  if (q.trim()) {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    renderSearchResults(await r.json());
+  } else {
+    renderSearchResults(allGroups);
+  }
+}
+
+function renderSearchResults(groups) {
+  document.getElementById('s-count').textContent = `${groups.length} result(s)`;
+  document.getElementById('s-results').innerHTML = groups.map(g => `
+    <div class="s-card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="background:var(--maroon);color:white;padding:2px 8px;border-radius:20px;font-size:.72rem;font-weight:700;">G${g.group}</span>
+        <span style="font-weight:700;font-size:.9rem;">${esc(g.project)}</span>
+        <span style="flex:1;"></span>
+        ${g.video_url  ? `<button class="btn-g btn-sm" onclick="openUrl('${safeAttr(g.video_url)}')" title="Video"><span class="material-icons" style="font-size:1rem;color:var(--maroon);">play_circle</span></button>` : ''}
+        ${g.repo_url   ? `<button class="btn-g btn-sm" onclick="openUrl('${safeAttr(g.repo_url)}')" title="Repo"><span class="material-icons" style="font-size:1rem;color:var(--maroon);">code</span></button>` : ''}
+        ${g.report_url ? `<button class="btn-g btn-sm" onclick="openUrl('${safeAttr(g.report_url)}')" title="Report"><span class="material-icons" style="font-size:1rem;color:var(--maroon);">description</span></button>` : ''}
+      </div>
+      <div style="font-size:.78rem;color:#666;margin-top:4px;">${esc(g.members.join(', '))}</div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   GRAPH
+══════════════════════════════════════════════════════ */
+async function loadGraph(full) {
+  document.getElementById('graph-wrap').innerHTML =
+    `<div class="placeholder" style="height:380px;"><span class="material-icons">hub</span><span>Loading…</span></div>`;
+  const url = `/api/group/${curGroup.group}/graph.png?full=${full?1:0}&t=${Date.now()}`;
+  document.getElementById('graph-wrap').innerHTML =
+    `<img src="${url}" style="max-width:100%;border-radius:8px;border:1px solid #eee;"
+          onerror="this.parentElement.innerHTML='<div class=placeholder style=height:380px><span class=material-icons>error</span><span>Graph failed</span></div>'">`;
+  document.getElementById('g-btn-label').textContent = `Group ${curGroup.group}`;
+}
+
+/* ═══════════════════════════════════════════════════
+   File Upload
+══════════════════════════════════════════════════════ */
+async function uploadFile(input, type) {
+  const file = input.files[0];
+  if (!file || !curGroup) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  toast(`Uploading ${file.name}…`);
+  const r = await fetch(`/api/group/${curGroup.group}/upload/${type}`, {method:'POST', body:fd});
+  const d = await r.json();
+  if (d.ok) {
+    toast(`"${d.filename}" uploaded!`);
+    const r2 = await fetch(`/api/group/${curGroup.group}`);
+    curGroup = await r2.json();
+    const idx = allGroups.findIndex(g => g.group === curGroup.group);
+    if (idx>=0) allGroups[idx] = curGroup;
+    if (type==='pdf') renderPdf();
+    else if (type==='zip') loadZipTree();
+  } else { toast('Upload failed', true); }
+  input.value = '';
+}
+
+async function uploadVideoFile(input, field) {
+  const file = input.files[0];
+  if (!file || !curGroup) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  toast(`Uploading ${file.name}…`);
+  const r = await fetch(`/api/group/${curGroup.group}/upload/video`, {method:'POST', body:fd});
+  const d = await r.json();
+  if (d.ok) {
+    document.getElementById(`inp-${field}`).value = d.value;
+    curGroup[field] = d.value;
+    const idx = allGroups.findIndex(g => g.group === curGroup.group);
+    if (idx>=0) allGroups[idx][field] = d.value;
+    toast(`"${d.filename}" uploaded!`);
+    renderMedia();
+  } else { toast('Upload failed', true); }
+  input.value = '';
+}
+
+async function saveField(key, value, silent=false) {
+  await fetch(`/api/group/${curGroup.group}/field`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({key, value: value.trim()})
+  });
+  curGroup[key] = value.trim();
+  const idx = allGroups.findIndex(g => g.group === curGroup.group);
+  if (idx>=0) allGroups[idx][key] = value.trim();
+  if (!silent) toast('Saved!');
+}
+
+function openUrl(url) {
+  if (url) window.open(url, '_blank');
+  else toast('No URL set', true);
+}
+
+/* ═══════════════════════════════════════════════════
+   Utils
+══════════════════════════════════════════════════════ */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function safeAttr(s) {
+  return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+}
+
+/* ── Boot ── */
+init();
+</script>
+</body>
+</html>
