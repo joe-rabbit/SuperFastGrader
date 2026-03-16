@@ -30,21 +30,6 @@ Opens automatically in your browser at `http://localhost:5000`.
 
 ## Notes Storage
 
-All notes are saved directly in `student_group_projects.json` under each group:
-
-```json
-{
-  "group": "03",
-  "project": "Blood Bank Management",
-  "members": ["..."],
-  "video_url": "https://youtu.be/...",
-  "notes": {
-    "phase1": { "text": "Good ERD...", "updated": "2026-03-16 10:30" },
-    "phase2": { "text": "UI needs work...", "updated": "2026-03-16 11:00" },
-    "phase3": { "text": "Final demo great.", "updated": "2026-03-16 14:22" }
-  }
-}
-```
 
 ---
 
